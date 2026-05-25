@@ -56,6 +56,7 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     debugImplementation(libs.androidx.compose.ui.tooling)
     implementation("org.connectbot:sshlib:2.2.46")
+    implementation("com.google.code.gson:gson:2.11.0")
     // FIXES: Unresolved reference 'Icons' / 'icons'
     implementation("androidx.compose.material:material-icons-extended:1.7.0")
 }

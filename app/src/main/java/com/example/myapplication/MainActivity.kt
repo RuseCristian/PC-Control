@@ -15,15 +15,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.*
+import androidx.compose.ui.platform.LocalContext
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
+        
+        val prefs = PrefsManager(this)
+        
         setContent {
-            var accentColor by remember { mutableStateOf(Color(0xFF00F5A0)) }
-            var isDarkTheme by remember { mutableStateOf(true) }
-            var backgroundColor by remember { mutableStateOf<Color?>(null) }
+            var accentColor by remember { mutableStateOf(prefs.loadAccentColor()) }
+            var isDarkTheme by remember { mutableStateOf(prefs.loadIsDarkTheme()) }
+            var backgroundColor by remember { mutableStateOf(prefs.loadBackgroundColor()) }
 
             PcControlTheme(
                 darkTheme = isDarkTheme, 
@@ -33,14 +37,23 @@ class MainActivity : ComponentActivity() {
                 Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                     MainApp(
                         accentColor = accentColor,
-                        onColorChange = { accentColor = it },
+                        onColorChange = { 
+                            accentColor = it
+                            prefs.saveAccentColor(it)
+                        },
                         isDarkTheme = isDarkTheme,
                         onThemeToggle = { 
                             isDarkTheme = !isDarkTheme
+                            prefs.saveIsDarkTheme(isDarkTheme)
                             backgroundColor = null 
+                            prefs.saveBackgroundColor(null)
                         },
                         currentBg = backgroundColor,
-                        onBgChange = { backgroundColor = it }
+                        onBgChange = { 
+                            backgroundColor = it
+                            prefs.saveBackgroundColor(it)
+                        },
+                        prefs = prefs
                     )
                 }
             }
@@ -56,11 +69,12 @@ fun MainApp(
     isDarkTheme: Boolean,
     onThemeToggle: () -> Unit,
     currentBg: Color?,
-    onBgChange: (Color?) -> Unit
+    onBgChange: (Color?) -> Unit,
+    prefs: PrefsManager
 ) {
     val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
-    var profiles by remember { mutableStateOf(emptyList<PcProfile>()) }
+    var profiles by remember { mutableStateOf(prefs.loadProfiles()) }
     var selectedProfile by remember { mutableStateOf<PcProfile?>(null) }
     var showAddDialog by remember { mutableStateOf(false) }
     var editingProfile by remember { mutableStateOf<PcProfile?>(null) }
@@ -69,6 +83,11 @@ fun MainApp(
     val profileStatuses = remember { mutableStateMapOf<String, DeviceStatus>() }
     val profileHostnames = remember { mutableStateMapOf<String, String>() }
     var terminalProfileId by remember { mutableStateOf<String?>(null) }
+
+    // Save profiles whenever they change
+    LaunchedEffect(profiles) {
+        prefs.saveProfiles(profiles)
+    }
 
     LaunchedEffect(profiles) {
         while (true) {
